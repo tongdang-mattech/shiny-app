@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Canadian Energy Flow Sankey Diagram 2018 </title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="d3-sankey.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+    rel="stylesheet">
+  <style>
+    .link {
+      fill: none;
+      stroke-opacity: 0.5;
+    }
+
+    .node rect {
+      stroke: #000;
+    }
+
+    .tooltip {
+      position: absolute;
+      background-color: #fff;
+      padding: 5px;
+      font-size: 12px;
+      border: 1px solid #ccc;
+      opacity: 0;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: 'Noto Sans', sans-serif;
+      font-size: 12px;
+    }
+
+    .label {
+      font-family: 'Noto Sans', sans-serif;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body onload="onload()">
+  <div class="container">
+    <div id="title" class="label">
+      <span id="title_content">Canadian Energy Flow, 2018 (Petajoules)</span>
+      <span style="margin-left: 8px;">
+        <select name="years" id="years">
+        </select>
+      </span>
+    </div>
+    <div id="sankey" style="font-family: 'Noto Sans', sans-serif;font-size:12px; margin-top: 16px;"></div>
+    <div class="tooltip"></div>
+
+    <script>
+      // Labels
+      const labels = [
+        { key: "Coal prod", label: "Coal" },
+        { key: "Natural Gas prod", label: "Natural Gas" },
+        { key: "Crude Oil prod", label: "Crude Oil" },
+        { key: "NGL's prod", label: "NGL's" },
+        { key: "Primary Electricity prod", label: "Primary Electricity" },
+        { key: "Secondary Electricity prod", label: "Secondary Electricity" },
+        { key: "Steam prod", label: "Steam" },
+        { key: "Crude Oil and Refined Products", label: "Crude Oil and Refined Products" },
+        { key: "Other Imports", label: "Other Imports" },
+        { key: "Coke, coke oven gas and Adjustments", label: "Coke, coke oven gas and Adjustments" },
+        { key: "Fossil Fuels", label: "Fossil Fuels" },
+        { key: "Domestic Production", label: "Domestic Production" },
+        { key: "Imported Energy", label: "Imported Energy" },
+        { key: "Exported Energy", label: "Exported Energy" },
+        { key: "Total Supply", label: "Total Supply" },
+        { key: "Coal, coke, Coke Oven Gas", label: "Coal, coke, Coke Oven Gas" },
+        { key: "Petroleum Products", label: "Petroleum Products" },
+        { key: "Total Consumption", label: "Total Consumption" },
+        { key: "Total Electricity", label: "Total Electricity" },
+        { key: "Total Comsumption", label: "Total Consumption" },
+        { key: "Residential and Agriculture", label: "Residential and Agriculture" },
+        { key: "Commercial and Public Admin", label: "Commercial and Public Admin" },
+        { key: "Industrial Use", label: "Industrial Use" },
+        { key: "Transportation Use", label: "Transportation Use" },
+        { key: "Transformation and Adjustments", label: "Transformation and Adjustments" },
+        { key: "Non-energy Use", label: "Non-energy Use" },
+        { key: "Producer Consumption", label: "Producer Consumption" },
+        { key: "Crude Oil export", label: "Crude Oil" },
+        { key: "Natural Gas export", label: "Natural Gas" },
+        { key: "Other export", label: "Other" },
+        { key: "Fossil Fuel", label: "Fossil Fuels" },
+      ];
+
+      const title = document.getElementById('title_content');
+      const sankey = document.getElementById('sankey');
+      const years_select = document.getElementById('years');
+      years_select.addEventListener("change", onChangeYear)
+
+      // Data
+      async function fetchData() {
+        const year = years_select.value;
+        try {
+          const [
+            total_primary_and_secondary_energry,
+            total_coal,
+            crude_oil,
+            natural_gas,
+            ngl,
+            primary,
+            steam,
+            renewable_fuels,
+            coke,
+            coke_oven_gas,
+            total_refined_products,
+            secondary
+          ] = await Promise.all([
+            fetchTotalPrimaryAndSecondaryEnergy(year),
+            fetchTotalCoal(year),
+            fetchCrudeOil(year),
+            fetchNaturalGas(year),
+            fetchNGL(year),
+            fetchPrimary(year),
+            fetchSteam(year),
+            fetchRenewableFuels(year),
+            fetchCoke(year),
+            fetchCokeOvenGas(year),
+            fetchTotalRefinedProducts(year),
+            fetchSecondary(year)
+          ]);
+
+          let data = [
+            { "source": "Coal prod", "target": "Fossil Fuels", "value": getValue(total_coal, 'production') },
+            { "source": "Natural Gas prod", "target": "Fossil Fuels", "value": getValue(natural_gas, 'production') },
+            { "source": "Crude Oil prod", "target": "Fossil Fuels", "value": getValue(crude_oil, 'production') },
+            { "source": "NGL's prod", "target": "Fossil Fuels", "value": getValue(ngl, 'production') },
+            { "source": "Primary Electricity prod", "target": "Domestic Production", "value": getValue(primary, 'production') },
+            { "source": "Secondary Electricity prod", "target": "Domestic Production", "value": getValue(secondary, 'production') },
+            { "source": "Steam prod", "target": "Domestic Production", "value": getValue(steam, 'production') },
+            { "source": "Crude Oil and Refined Products", "target": "Imported Energy", "value": getValue(crude_oil, 'imports') + getValue(total_refined_products, 'imports') },
+            { "source": "Other Imports", "target": "Imported Energy", "value": getValue(total_primary_and_secondary_energry, 'imports') - getValue(crude_oil, 'imports') - getValue(total_refined_products, 'imports') },
+            { "source": "Coke, coke oven gas and Adjustments", "target": "Total Supply", "value": getTotalSupply(coke) + getTotalSupply(coke_oven_gas) },
+            { "source": "Fossil Fuels", "target": "Domestic Production", "value": getValue(total_coal, 'production') + getValue(natural_gas, 'production') + getValue(crude_oil, 'production') + getValue(ngl, 'production') },
+            //10
+          ]
+          data = [
+            ...data,
+            { "source": "Domestic Production", "target": "Total Supply", "value": data[10].value + data[4].value + data[5].value + data[6].value },
+            { "source": "Imported Energy", "target": "Total Supply", "value": data[7].value + data[8].value },
+            { "source": "Total Supply", "target": "Crude Oil export", "value": getValue(crude_oil, 'exports') },
+            { "source": "Total Supply", "target": "Natural Gas export", "value": getValue(natural_gas, 'exports') },
+            { "source": "Total Supply", "target": "Other export", "value": getValue(total_primary_and_secondary_energry, 'exports') - getValue(crude_oil, 'exports') - getValue(natural_gas, 'exports') },
+            { "source": "Crude Oil export", "target": "Exported Energy", "value": getValue(crude_oil, 'exports') },
+            { "source": "Natural Gas export", "target": "Exported Energy", "value": getValue(natural_gas, 'exports') },
+            { "source": "Other export", "target": "Exported Energy", "value": getValue(total_primary_and_secondary_energry, 'exports') - getValue(crude_oil, 'exports') - getValue(natural_gas, 'exports') },
+            { "source": "Total Supply", "target": "Coal, coke, Coke Oven Gas", "value": getValue(total_coal, 'availability') + getValue(coke, 'availability') + getValue(coke_oven_gas, 'availability') },
+            { "source": "Total Supply", "target": "Natural Gas", "value": getValue(natural_gas, 'availability') },
+            { "source": "Total Supply", "target": "NGL's", "value": getValue(ngl, 'availability') },
+            { "source": "Total Supply", "target": "Petroleum Products", "value": getValue(total_refined_products, 'availability') },
+            { "source": "Total Supply", "target": "Steam", "value": getValue(steam, 'availability') },
+            { "source": "Total Supply", "target": "Primary Electricity", "value": getValue(primary, 'availability') },
+            { "source": "Total Supply", "target": "Secondary Electricity", "value": getValue(secondary, 'availability') },
+            //25
+          ];
+          data = [
+            ...data,
+            { "source": "Steam", "target": "Total Consumption", "value": data[23].value },
+            { "source": "Primary Electricity", "target": "Total Electricity", "value": data[24].value },
+            { "source": "Secondary Electricity", "target": "Total Electricity", "value": data[25].value },
+            { "source": "Coal, coke, Coke Oven Gas", "target": "Fossil Fuel", "value": data[19].value },
+            { "source": "Natural Gas", "target": "Fossil Fuel", "value": data[20].value },
+            { "source": "NGL's", "target": "Fossil Fuel", "value": data[21].value },
+            { "source": "Petroleum Products", "target": "Fossil Fuel", "value": data[22].value },
+            //32;
+          ];
+          data = [
+            ...data,
+            {
+              "source": "Fossil Fuel", "target": "Total Consumption", "value": function () {
+                let total = 0;
+                for (let i = 29; i <= 32; i++) {
+                  total += data[i].value;
+                }
+                return total
+              }()
+            },
+            { "source": "Total Electricity", "target": "Total Consumption", "value": data[27].value + data[28].value },
+            {
+              "source": "Total Consumption",
+              "target": "Commercial and Public Admin",
+              "value": getValue(total_primary_and_secondary_energry, 'commercial') + getValue(total_primary_and_secondary_energry, 'public administration')
+            },
+            { "source": "Total Consumption", "target": "Industrial Use", "value": getValue(total_primary_and_secondary_energry, 'total industrial') },
+            {
+              "source": "Total Consumption",
+              "target": "Transportation Use",
+              "value": getValue(total_primary_and_secondary_energry, 'transportation')
+            },
+            {
+              "source": "Total Consumption",
+              "target": "Transformation and Adjustments",
+              "value": getValue(total_primary_and_secondary_energry, 'transform') + getValue(total_primary_and_secondary_energry, 'adjustments') + getValue(total_primary_and_secondary_energry, 'transfers') - getValue(total_primary_and_secondary_energry, 'transformed to refined petroleum products')
+            },
+            { "source": "Total Consumption", "target": "Non-energy Use", "value": getValue(total_primary_and_secondary_energry, 'non-energy use') },
+            {
+              "source": "Total Consumption",
+              "target": "Producer Consumption",
+              "value": getValue(total_primary_and_secondary_energry, 'producer consumption')
+            }
+          ]
+          data = [
+            ...data,
+            {
+              "source": "Total Consumption",
+              "target": "Residential and Agriculture",
+              "value": (data[33].value + data[34].value) - function () {
+                let total = 0;
+                for (let i = 35; i <= 40; i++) {
+                  total += data[i].value;
+                }
+                return total;
+              }()
+            },
+          ]
+          // const response = await axios.get('RESD_2018.json');
+          // data = response.data;
+
+          // Data transformation
+          const nodes = Array.from(new Set(data.flatMap(d => [d.source, d.target]))).map((name, index) => ({ name, index }));
+
+          const links = data.map(d => {
+            const source = nodes.findIndex(node => node.name === d.source);
+            const target = nodes.findIndex(node => node.name === d.target);
+            return {
+              source,
+              target,
+              value: d.value,
+            };
+          });
+
+          return { nodes, links };
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+      }
+
+
+      async function fetchTotalPrimaryAndSecondaryEnergy(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.1.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data;
+      }
+
+      async function fetchTotalCoal(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.29.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data;
+      }
+
+      async function fetchCrudeOil(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.4.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data;
+      }
+
+      async function fetchNaturalGas(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.5.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      async function fetchNGL(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.6.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      async function fetchPrimary(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.7.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      async function fetchSteam(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.8.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      async function fetchRenewableFuels(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.35.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      async function fetchCoke(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.10.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      async function fetchCokeOvenGas(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.11.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      async function fetchTotalRefinedProducts(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.14.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      async function fetchSecondary(year) {
+        const res = await axios.get(`https://www150.statcan.gc.ca/t1/wds/sdmx/statcan/v1/rest/data/DF_25100029/1.13.?startPeriod=${year}&endPeriod=${year}`, {
+          headers: {
+            Accept: 'application/vnd.sdmx.data+json;version=1.0.0-wd'
+          }
+        });
+        return res.data
+      }
+
+      function getValue(object, name) {
+        let total = 0;
+        const values = object.structure.dimensions.series[2].values.filter((item) => item.name.toLowerCase().includes(name))
+        let indexs = [];
+        for (const value of values) {
+          indexs = [...indexs, object.structure.dimensions.series[2].values.findIndex((item) => item.name == value.name)];
+        }
+        indexs.forEach(idx => {
+          if (object.dataSets[0].series[`0:0:${idx}`]?.observations[0][0] == 'NaN') total += 0;
+          else total += Math.round(parseInt(object.dataSets[0].series[`0:0:${idx}`]?.observations[0][0] ?? 0) / 1000);
+        });
+        return total
+      }
+
+      function getTotalSupply(object) {
+        const series = object.structure.dimensions.series[2].values;
+        let total = 0;
+        for (const idx in series) if (parseInt(series[idx].id) <= 18) total += Math.round(parseInt(object.dataSets[0].series[`0:0:${idx}`].observations[0][0] != 'NaN' ? (object.dataSets[0].series[`0:0:${idx}`].observations[0][0] ?? 0) : 0) / 1000)
+        return total
+      }
+
+      function onload() {
+        for (let i = 1995; i <= 2021; i++) {
+          const option = document.createElement("option");
+          option.text = i.toString();
+          option.value = i;
+          years_select.add(option);
+        }
+        years_select.value = 2018;
+        onDraw();
+      }
+
+      function onChangeYear() {
+        title.innerHTML = `Canadian Energy Flow Sankey Diagram ${years_select.value} (Petajoules)`;
+        sankey.innerHTML = '';
+        onDraw();
+      }
+
+      async function onDraw() {
+        const data = await fetchData();
+
+        var nodes = data.nodes.map(item => {
+          return { name: item.name };
+        });
+
+        for (let i = 0; i < nodes.length; i++) {
+          const element = nodes[i];
+          const labelItem = labels.find(item => item.key === element.name);
+          if (labelItem && labelItem.label) {
+            nodes[i].name = labelItem.label;
+          }
+        }
+
+        var links = data.links.filter(item => item.target);
+
+        links = links.map(item => {
+          return { source: item.source, target: item.target, value: item.value };
+        });
+
+        // Dimensions
+        var width = 1080;
+        var height = 600;
+
+        // Create SVG
+        var svg = d3.select("#sankey")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        // Set up Sankey layout
+        var sankey = d3.sankey()
+          .nodeWidth(15)
+          .nodePadding(5)
+          .size([width, height]);
+
+        // Compute layout
+        var { nodes, links } = sankey({
+          nodes: nodes,
+          links: links
+        });
+
+        // Create link gradient colors
+        var linkGradient = svg.append("defs")
+          .selectAll("linearGradient")
+          .data(links)
+          .enter()
+          .append("linearGradient")
+          .attr("id", function (d, i) { return "gradient-" + i; })
+          .attr("gradientUnits", "userSpaceOnUse")
+          .attr("x1", function (d) { return d.source.x1; })
+          .attr("x2", function (d) { return d.target.x0; });
+
+        linkGradient.append("stop")
+          .attr("offset", "0%")
+          .attr("stop-color", "#eaeaea");
+
+        linkGradient.append("stop")
+          .attr("offset", "100%")
+          .attr("stop-color", "#eaeaea");
+
+        // Create link groups
+        var link = svg.append("g")
+          .selectAll(".link")
+          .data(links)
+          .enter()
+          .append("path")
+          .attr("class", "link")
+          .attr("d", d3.sankeyLinkHorizontal())
+          .style("fill", "none")
+          .style("stroke-opacity", 0.5)
+          .style("stroke-width", function (d) { return Math.max(1, d.width); })
+          .style("stroke", function (d, i) { return "url(#gradient-" + i + ")"; })
+          .on("mouseover", function (d, i) {
+            const el = document.getElementById(`gradient-${i.index}`)
+            el.childNodes[0].setAttribute("stop-color", d3.schemeCategory10[i.source.index % 10])
+            el.childNodes[1].setAttribute("stop-color", d3.schemeCategory10[i.target.index % 10])
+            d3.select(this)
+              .style("stroke-opacity", 0.5);
+            tooltip.html("<strong>" + i.source.name + "&nbsp;&#8594;&nbsp;" + i.target.name + "</strong><br>" +
+              i.value.toLocaleString("en-US") + " PJ")
+              .style("left", (d.pageX + 10) + "px")
+              .style("top", (d.pageY - 10) + "px")
+              .style("background-color", "#335075")
+              .style("color", "#fff")
+              .style("border", "2px solid black")
+              .style("border-radius", "5px")
+              .style("opacity", 1);
+          })
+          .on("mousemove", function (d) { // New event handl
+            tooltip.style("left", (d.pageX + 10) + "px")
+              .style("top", (d.pageY - 10) + "px");
+          })
+          .on("mouseout", function (d, i) {
+            const el = document.getElementById(`gradient-${i.index}`)
+            el.childNodes[0].setAttribute("stop-color", "#eaeaea")
+            el.childNodes[1].setAttribute("stop-color", "#eaeaea")
+            d3.select(this)
+              .style("stroke-opacity", 0.5);
+            tooltip.style("opacity", 0);
+          });
+
+        // Create node groups
+        var node = svg.append("g")
+          .selectAll(".node")
+          .data(nodes)
+          .enter()
+          .append("g")
+          .attr("class", "node")
+          .attr("transform", function (d) {
+            return "translate(" + d.x0 + "," + d.y0 + ")";
+          });
+
+        // Add rectangles to nodes
+        node.append("rect")
+          .attr("height", function (d) { return d.y1 - d.y0; })
+          .attr("width", sankey.nodeWidth())
+          .style("fill", function (d, i) {
+            return d3.schemeCategory10[i % 10];
+          })
+          .style("stroke", "#000");
+
+        // Add labels to nodes
+        node.append("text")
+          .attr("x", -6)
+          .attr("y", function (d) { return (d.y1 - d.y0) / 2; })
+          .attr("dy", "0.35em")
+          .attr("text-anchor", "end")
+          .text(function (d) {
+            return d.name;
+          })
+          .filter(function (d) { return d.x0 < width / 2; })
+          .attr("x", 6 + sankey.nodeWidth())
+          .attr("text-anchor", "start");
+
+        node.on("mouseover", function (d, i) {
+          d3.select(this)
+            .style("stroke-opacity", 1);
+          tooltip.html("<strong>" + i.name + "</strong><br>" +
+            Math.round(i.value).toLocaleString("en-US") + " PJ")
+            .style("left", (d.pageX + 10) + "px")
+            .style("top", (d.pageY - 10) + "px")
+            .style("background-color", "#335075")
+            .style("color", "#fff")
+            .style("border", "2px solid black")
+            .style("border-radius", "5px")
+            .style("opacity", 1);
+        });
+
+        // Create tooltip
+        var tooltip = d3.select(".tooltip");
+
+        // Update tooltip position on mouse move
+        svg.on("mousemove", function (d) {
+          tooltip.style("left", (d.pageX + 10) + "px")
+            .style("top", (d.pageY - 10) + "px");
+        });
+
+        // Hide tooltip on mouseout
+        svg.on("mouseout", function () {
+          tooltip.style("opacity", 0);
+        });
+      }
+    </script>
+</body>
+
+</html>

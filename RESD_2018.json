@@ -1,0 +1,104 @@
+[
+  { "source": "Coal prod", "target": "Fossil Fuels", "value": 1222 },
+  { "source": "Natural Gas prod", "target": "Fossil Fuels", "value": 7108 },
+  { "source": "Crude Oil prod", "target": "Fossil Fuels", "value": 10520 },
+  { "source": "NGL's prod", "target": "Fossil Fuels", "value": 867 },
+  {
+    "source": "Primary Electricity prod",
+    "target": "Domestic Production",
+    "value": 1844
+  },
+  {
+    "source": "Secondary Electricity prod",
+    "target": "Domestic Production",
+    "value": 461
+  },
+  { "source": "Steam prod", "target": "Domestic Production", "value": 0 },
+  {
+    "source": "Crude Oil and Refined Products",
+    "target": "Imported Energy",
+    "value": 2461
+  },
+  { "source": "Other Imports", "target": "Imported Energy", "value": 1550 },
+  {
+    "source": "Coke, coke oven gas and Adjustments",
+    "target": "Total Supply",
+    "value": 437
+  },
+  { "source": "Fossil Fuels", "target": "Domestic Production", "value": 19716 },
+  { "source": "Domestic Production", "target": "Total Supply", "value": 22022 },
+  { "source": "Imported Energy", "target": "Total Supply", "value": 4012 },
+  { "source": "Total Supply", "target": "Crude Oil export", "value": 8356 },
+  { "source": "Total Supply", "target": "Natural Gas export", "value": 3107 },
+  { "source": "Total Supply", "target": "Other export", "value": 2272 },
+  { "source": "Crude Oil export", "target": "Exported Energy", "value": 8356 },
+  {
+    "source": "Natural Gas export",
+    "target": "Exported Energy",
+    "value": 3107
+  },
+  { "source": "Other export", "target": "Exported Energy", "value": 2272 },
+  {
+    "source": "Total Supply",
+    "target": "Coal, coke, Coke Oven Gas",
+    "value": 741
+  },
+  { "source": "Total Supply", "target": "Natural Gas", "value": 4661 },
+  { "source": "Total Supply", "target": "NGL's", "value": 677 },
+  { "source": "Total Supply", "target": "Petroleum Products", "value": 4526 },
+  { "source": "Total Supply", "target": "Steam", "value": 0 },
+  { "source": "Total Supply", "target": "Primary Electricity", "value": 1670 },
+  { "source": "Total Supply", "target": "Secondary Electricity", "value": 461 },
+  { "source": "Steam", "target": "Total Consumption", "value": 0 },
+  {
+    "source": "Primary Electricity",
+    "target": "Total Electricity",
+    "value": 1670
+  },
+  {
+    "source": "Secondary Electricity",
+    "target": "Total Electricity",
+    "value": 461
+  },
+  {
+    "source": "Coal, coke, Coke Oven Gas",
+    "target": "Fossil Fuel",
+    "value": 741
+  },
+  { "source": "Natural Gas", "target": "Fossil Fuel", "value": 4661 },
+  { "source": "NGL's", "target": "Fossil Fuel", "value": 677 },
+  { "source": "Petroleum Products", "target": "Fossil Fuel", "value": 4526 },
+  { "source": "Fossil Fuel", "target": "Total Consumption", "value": 10604 },
+  {
+    "source": "Total Electricity",
+    "target": "Total Consumption",
+    "value": 2132
+  },
+  {
+    "source": "Total Consumption",
+    "target": "Residential and Agriculture",
+    "value": 1754
+  },
+  {
+    "source": "Total Consumption",
+    "target": "Commercial and Public Admin",
+    "value": 1356
+  },
+  { "source": "Total Consumption", "target": "Industrial Use", "value": 2940 },
+  {
+    "source": "Total Consumption",
+    "target": "Transportation Use",
+    "value": 2840
+  },
+  {
+    "source": "Total Consumption",
+    "target": "Transformation and Adjustments",
+    "value": 1534
+  },
+  { "source": "Total Consumption", "target": "Non-energy Use", "value": 1006 },
+  {
+    "source": "Total Consumption",
+    "target": "Producer Consumption",
+    "value": 1307
+  }
+]
